@@ -1,8 +1,7 @@
-from Crypto.PublicKey import DSA
-from Crypto.Signature import DSS
-from Crypto.Hash import SHA256
-from hashlib import sha256
-from .transaction import Transaction
+import ecdsa
+from hashlib import sha256, new
+from transaction import Transaction
+
 
 
 class User():
@@ -16,23 +15,36 @@ class User():
 	'''
 	def __init__(self):
 
-		self.public_key, self.private_key, self.key_pair = self.generate_key_pair()
-		self.address = sha256(self.public_key).hexdigest()
+		
+		self.private_key, self.public_key = self.generate_key_pair() 
+		self.address = new('ripemd160', sha256(self.public_key).hexdigest().encode()).hexdigest()
+		self.can_vote = False
+		self.can_recieve_vote = False
+		self.voted = False
+		# print(self.public_key)
+		# print(self.private_key)
+		print(self.address)
 	def generate_key_pair(self):
-		key_pair = DSA.generate(2048)
-		with open('keyfile.pem', 'wb') as f:
-			f.writelines([key_pair.export_key(), key_pair.publickey().export_key()])
-		return key_pair.publickey().export_key(), key_pair.export_key(), key_pair
-	def create_transaction(self, reciever_address, value):
-		hash = SHA256.new(value)
+		private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+		public_key = private_key.verifying_key
+		# print(private_key.to_string())
+		# print(len(public_key.to_string()))
+		with open('key.pem', 'w') as f:
+			f.write(private_key.to_pem().hex())
+			f.write('\n---------------------------------------------------------------------------------------\n')
+			f.write(public_key.to_pem().hex())
+		return private_key.to_pem(), public_key.to_pem()
 
-		signature = DSS.new(self.key_pair, 'flips-186-3').sign(hash)
-		return Transaction(sender_address=self.address, 
-		sender_public_key=self.public_key, 
-		reciever_address=reciever_address,
-		value = value,
-		signature=signature
-		)
+	def vote(self, reciever_address, value):
+		Transaction(self.address, self.public_key, reciever_address, value, 1)
+
+
+
+
+
+	def mint(self):
+		pass
+
 
 
 u = User()
