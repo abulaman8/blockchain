@@ -3,6 +3,8 @@ from ecdsa import SigningKey, VerifyingKey
 from vote import Vote
 from dateutil.tz import gettz
 import datetime
+import pyqrcode
+import png
 
 
 
@@ -20,10 +22,12 @@ class Voter():
 	def generate_key_pair(self):
 		private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
 		public_key = private_key.verifying_key
-		with open('key.pem', 'w') as f:
+		with open('voter_key.pem', 'w') as f:
 			f.write(private_key.to_pem().hex())
 			f.write('\n---------------------------------------------------------------------------------------\n')
 			f.write(public_key.to_pem().hex())
+		pbkqr = pyqrcode.create(public_key.to_pem())
+		pbkqr.png('voter_public_key.png', scale=6)
 		return private_key.to_pem(), public_key.to_pem()
 
 	def vote(self, candidate_public_key):
@@ -35,22 +39,22 @@ class Voter():
 		}), 'utf-8')
 		signature = SigningKey.from_pem(self.private_key).sign(content)
 		vote = Vote(voter_public_key= VerifyingKey.from_pem(self.public_key), timestamp=timestamp , candidate_public_key=candidate_public_key, signature=signature, content=content)
-		# print(vote.voter_public_key)
-		# print('-------------------------------------------------------------------------------')
-		# print('-------------------------------------------------------------------------------')
-		# print(vote.candidate_public_key)
-		# print('-------------------------------------------------------------------------------')
-		# print('-------------------------------------------------------------------------------')
-		# print(vote.signature)
-		# print('-------------------------------------------------------------------------------')
-		# print('-------------------------------------------------------------------------------')
-		# print(vote.content)
-		# print('-------------------------------------------------------------------------------')
-		# print('-------------------------------------------------------------------------------')
-		# v = VerifyingKey.from_pem(self.public_key).verify(signature, content)
-		# print('-------------------------------------------------------------------------------')
-		# print('-------------------------------------------------------------------------------')
-		# print(v)
+		print(vote.voter_public_key.to_pem())
+		print('-------------------------------------------------------------------------------')
+		print('-------------------------------------------------------------------------------')
+		print(vote.candidate_public_key)
+		print('-------------------------------------------------------------------------------')
+		print('-------------------------------------------------------------------------------')
+		print(vote.signature)
+		print('-------------------------------------------------------------------------------')
+		print('-------------------------------------------------------------------------------')
+		print(vote.content)
+		print('-------------------------------------------------------------------------------')
+		print('-------------------------------------------------------------------------------')
+		v = VerifyingKey.from_pem(self.public_key).verify(signature, content)
+		print('-------------------------------------------------------------------------------')
+		print('-------------------------------------------------------------------------------')
+		print(v)
 
 
 
@@ -60,9 +64,9 @@ class Voter():
     	
 
 
-# def mint():
-# 	v = Voter()
-# 	v.vote(candidate_public_key=1234567890)
+def mint():
+	v = Voter()
+	v.vote(candidate_public_key=1234567890)
 
 
-# mint()
+mint()
