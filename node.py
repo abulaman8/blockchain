@@ -2,7 +2,21 @@ from hashlib import sha256
 import socket
 from getmac import get_mac_address
 from voter import Voter
- 
+from pymongo import MongoClient
+from vote import deserialize
+
+
+client = MongoClient('127.0.0.1:27017',
+                     username='nodeRunner',
+                     password='abulaman',
+                     authSource='vsortium',
+                     authMechanism='SCRAM-SHA-256')
+db = client.vsortium
+
+
+
+
+
 
 class Node():
     ''' 
@@ -20,31 +34,31 @@ class Node():
 
     '''
     def __init__(self, port=8888):
-        self.block_chain = []
         self.mempool = []
-        self.voter_pool = []
+        self.utxo_pool = db.utxo_pool
         # self.id = str(get_mac_address())
-        self.ip = socket.gethostbyname(socket.gethostname())
-        self.port = port
+        self.ip = '127.0.0.1'
+        self.port = 8888
         self.known_nodes = []
-        # self.sender = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.reciever = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.sender.bind(('127.0.0.1', self.port))
-        # self.sender.listen()
-
-        print(self.port)
-        # print(self.id)
-        print(self.ip)
+        self.listen()
 
 
 
     def mint(self):
-        v = Voter(can_vote=True)
+        v = Voter()
         return v
 
     def verify_vote_and_broadcast(self, vote):
-        if vote.voter_public_key in self.voter_pool:
-            pass
+        vote_dict = deserialize(vote)
+        valid_voter = self.utxo_pool.find_one({'pub_key': int.from_bytes(vote_dict.vpub, "big")})
+        if valid_voter:
+            self.mempool.append(vote)
+            for node in self.known_nodes:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.connect(node)
+                sock.send(vote)
+                sock.close()
+                print(f'vote broadcasted to {node[0]}')
     
 
     def mine(self):
@@ -52,7 +66,17 @@ class Node():
 
 
     def listen(self):
-        pass
+        listener_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        listener_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener_sock.bind((self.ip, self.port))
+        listener_sock.listen(10)
+        while True:
+            client_socket, address = listener_sock.accept()
+            print(f'connection from {address}...')
+            msg = client_socket.recv(1024)
+            if msg[:4].decode('utf-8') == 'vote':
+                self.verify_vote_and_broadcast(msg)
+            print(msg)
     
 
     def request_missed_blocks(self):

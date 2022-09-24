@@ -5,8 +5,17 @@ from dateutil.tz import gettz
 import datetime
 import pyqrcode
 import png
+import hashlib
+import socket
 
 
+
+
+HOST = '127.0.0.1'
+PORT = 4455
+PORT2 = 5555
+
+hps=[('127.0.0.1', 4455), ('127.0.0.1', 5555)]
 
 
 class Voter():
@@ -22,6 +31,8 @@ class Voter():
 	def generate_key_pair(self):
 		private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
 		public_key = private_key.verifying_key
+		# hpkey = int.from_bytes(private_key.to_string(), "big")
+		# print(hpkey)
 		with open('voter_key.pem', 'w') as f:
 			f.write(private_key.to_pem().hex())
 			f.write('\n---------------------------------------------------------------------------------------\n')
@@ -31,30 +42,21 @@ class Voter():
 		return private_key.to_pem(), public_key.to_pem()
 
 	def vote(self, candidate_public_key):
-		timestamp = datetime.datetime.now(tz=gettz('Asia/Kolkata')).timestamp()
-		content = bytes(str({
-			"voter": VerifyingKey.from_pem(self.public_key),
-			"candidate": candidate_public_key,
-			"timestamp": timestamp
-		}), 'utf-8')
-		signature = SigningKey.from_pem(self.private_key).sign(content)
-		vote = Vote(voter_public_key= VerifyingKey.from_pem(self.public_key), timestamp=timestamp , candidate_public_key=candidate_public_key, signature=signature, content=content)
-		print(vote.voter_public_key.to_pem())
-		print('-------------------------------------------------------------------------------')
-		print('-------------------------------------------------------------------------------')
-		print(vote.candidate_public_key)
-		print('-------------------------------------------------------------------------------')
-		print('-------------------------------------------------------------------------------')
-		print(vote.signature)
-		print('-------------------------------------------------------------------------------')
-		print('-------------------------------------------------------------------------------')
-		print(vote.content)
-		print('-------------------------------------------------------------------------------')
-		print('-------------------------------------------------------------------------------')
-		v = VerifyingKey.from_pem(self.public_key).verify(signature, content)
-		print('-------------------------------------------------------------------------------')
-		print('-------------------------------------------------------------------------------')
-		print(v)
+		vote = Vote(
+			voter_public_key=self.public_key,
+			voter_private_key=self.private_key,
+			candidate_public_key=candidate_public_key
+			)
+		data = vote.serialize()
+		for hp in hps:
+			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			connecter = sock
+			connecter.connect(hp)
+			connecter.send(data)
+			connecter.close()
+			print(f'data sent to {hp} and closed')
+
+		
 
 
 
@@ -65,8 +67,10 @@ class Voter():
 
 
 def mint():
+	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+	vpublic_key = vprivate_key.verifying_key.to_pem()
 	v = Voter()
-	v.vote(candidate_public_key=1234567890)
+	v.vote(candidate_public_key= vpublic_key)
 
 
 mint()
