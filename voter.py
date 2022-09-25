@@ -15,7 +15,7 @@ HOST = '127.0.0.1'
 PORT = 4455
 PORT2 = 5555
 
-hps=[('127.0.0.1', 4455), ('127.0.0.1', 5555)]
+hps=[('127.0.0.1', 7777), ('127.0.0.1', 9999)]
 
 
 class Voter():
@@ -49,6 +49,7 @@ class Voter():
 			)
 		data = vote.serialize()
 		for hp in hps:
+			print(hp)
 			sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 			connecter = sock
 			connecter.connect(hp)
@@ -66,11 +67,11 @@ class Voter():
     	
 
 
-def mint():
-	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-	vpublic_key = vprivate_key.verifying_key.to_pem()
-	v = Voter()
-	v.vote(candidate_public_key= vpublic_key)
+# def mint():
+# 	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+# 	vpublic_key = vprivate_key.verifying_key.to_pem()
+# 	v = Voter()
+# 	v.vote(candidate_public_key= vpublic_key)
 
 
-mint()
+# mint()

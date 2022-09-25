@@ -23,11 +23,11 @@ class Vote():
 		vpub_bytes = self.vpub.to_string()                                                              #64 bytes
 		cpub_bytes = self.cpub.to_string()                                                              #64 bytes
 		time_bytes = self.timestamp.to_bytes(4, "big")                                                  #4 bytes
-		content = msg_type+vpub_bytes + cpub_bytes + time_bytes                                         #136 bytes 
+		content = vpub_bytes + cpub_bytes + time_bytes                                         #136 bytes 
 		# print(content)
 		# print(type(content))
 		content_hash = hashlib.sha256(content).hexdigest()                                              #32 bytes
-		txn_bytes = bytes.fromhex(content_hash)+content                                                 #168 bytes
+		txn_bytes = msg_type + bytes.fromhex(content_hash)+content                                                 #168 bytes
 		signature = self.vprv.sign(txn_bytes)                                                           #64 bytes
 		# print(len(signature))
 
@@ -36,13 +36,14 @@ class Vote():
 
 
 def deserialize(vbytes):
+	msg_type = vbytes[:4].decode('utf-8')
 	vote_hash = vbytes[4:36].hex()
 	vpub = VerifyingKey.from_string(vbytes[36:100], curve=ecdsa.SECP256k1)
 	cpub = VerifyingKey.from_string(vbytes[100:164], curve=ecdsa.SECP256k1)
 	time_stamp = int.from_bytes(vbytes[164:168], 'big')
 	signature = vbytes[168:]
 	return {
-		
+		'type': msg_type,
 		'vote_hash': vote_hash,
 		'vpub': vpub,
 		'cpub': cpub,
@@ -52,12 +53,12 @@ def deserialize(vbytes):
 
 
 
-def test():
-	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-	vpublic_key = vprivate_key.verifying_key.to_pem()
-	cprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-	cpublic_key = cprivate_key.verifying_key.to_pem()
-	vote = Vote(candidate_public_key=cpublic_key, voter_private_key=vprivate_key.to_pem(), voter_public_key=vpublic_key)
-	print(vote.serialize())
+# def test():
+# 	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+# 	vpublic_key = vprivate_key.verifying_key.to_pem()
+# 	cprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+# 	cpublic_key = cprivate_key.verifying_key.to_pem()
+# 	vote = Vote(candidate_public_key=cpublic_key, voter_private_key=vprivate_key.to_pem(), voter_public_key=vpublic_key)
+# 	print(vote.serialize())
 
-test()
+# test()

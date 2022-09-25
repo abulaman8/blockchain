@@ -4,6 +4,7 @@ from getmac import get_mac_address
 from voter import Voter
 from pymongo import MongoClient
 from vote import deserialize
+import sys
 
 
 client = MongoClient('127.0.0.1:27017',
@@ -13,9 +14,17 @@ client = MongoClient('127.0.0.1:27017',
                      authMechanism='SCRAM-SHA-256')
 db = client.vsortium
 
+args = sys.argv
 
+port = int(args[1])
 
+known_nodes=[]
 
+dns_file = args[2]
+with open(dns_file, 'r') as f:
+    lines = f.readlines()
+    for line in lines:
+        known_nodes.append((line.split(',')[0], int(line.split(',')[1])))
 
 
 class Node():
@@ -33,13 +42,13 @@ class Node():
         5. Request blocks that it has missed from other "known" nodes (Realized when the "prev hash" of an incoming block doesnt match the latest block's hash in it's copy of the ledger)
 
     '''
-    def __init__(self, port=8888):
+    def __init__(self, port=8888, known_nodes = []):
         self.mempool = []
         self.utxo_pool = db.utxo_pool
         # self.id = str(get_mac_address())
         self.ip = '127.0.0.1'
-        self.port = 8888
-        self.known_nodes = []
+        self.port = port
+        self.known_nodes = known_nodes
         self.listen()
 
 
@@ -49,8 +58,9 @@ class Node():
         return v
 
     def verify_vote_and_broadcast(self, vote):
+        print('started')
         vote_dict = deserialize(vote)
-        valid_voter = self.utxo_pool.find_one({'pub_key': int.from_bytes(vote_dict.vpub, "big")})
+        valid_voter = self.utxo_pool.find_one({'pub_key': str(int.from_bytes(vote_dict['vpub'].to_string(), "big"))})
         if valid_voter:
             self.mempool.append(vote)
             for node in self.known_nodes:
@@ -59,6 +69,8 @@ class Node():
                 sock.send(vote)
                 sock.close()
                 print(f'vote broadcasted to {node[0]}')
+        else:
+            print('voter not in database')
     
 
     def mine(self):
@@ -70,12 +82,17 @@ class Node():
         listener_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         listener_sock.bind((self.ip, self.port))
         listener_sock.listen(10)
+        print(f'listening on {self.ip}:{self.port}')
         while True:
             client_socket, address = listener_sock.accept()
             print(f'connection from {address}...')
             msg = client_socket.recv(1024)
-            if msg[:4].decode('utf-8') == 'vote':
+            if msg[:4].decode("utf-8") == 'vote':
+                print('its a vote')
                 self.verify_vote_and_broadcast(msg)
+                print('sent for broadcast')
+            else:
+                print('its not a vote')
             print(msg)
     
 
@@ -87,8 +104,8 @@ class Node():
 
 
 
-n = Node()
-n.mint()
+n = Node(port=port, known_nodes=known_nodes)
+# n.mint()
 
 
 
