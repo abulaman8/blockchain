@@ -67,11 +67,13 @@ class Voter():
     	
 
 
-# def mint():
-# 	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-# 	vpublic_key = vprivate_key.verifying_key.to_pem()
-# 	v = Voter()
-# 	v.vote(candidate_public_key= vpublic_key)
+def mint():
+	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+	vpublic_key = vprivate_key.verifying_key.to_pem()
+	v = Voter()
+	v.vote(candidate_public_key= vpublic_key)
 
+if __name__ == '__main__':
+	mint()
 
 # mint()

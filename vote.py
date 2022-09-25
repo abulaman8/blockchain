@@ -53,12 +53,16 @@ def deserialize(vbytes):
 
 
 
-# def test():
-# 	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-# 	vpublic_key = vprivate_key.verifying_key.to_pem()
-# 	cprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-# 	cpublic_key = cprivate_key.verifying_key.to_pem()
-# 	vote = Vote(candidate_public_key=cpublic_key, voter_private_key=vprivate_key.to_pem(), voter_public_key=vpublic_key)
-# 	print(vote.serialize())
+def test():
+	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+	vpublic_key = vprivate_key.verifying_key.to_pem()
+	cprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
+	cpublic_key = cprivate_key.verifying_key.to_pem()
+	vote = Vote(candidate_public_key=cpublic_key, voter_private_key=vprivate_key.to_pem(), voter_public_key=vpublic_key)
+	print(vote.serialize())
+
+if __name__ == '__main__':
+	test()
+
 
 # test()
