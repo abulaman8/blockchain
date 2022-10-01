@@ -75,7 +75,8 @@ class Node():
         else:
             votes = self.mempool
         new_block = Block(prev_hash=self.prev_hash, version_number=self.version_number, target=self.target, votes=votes)
-        new_block.mine()
+        block = new_block.mine()
+        self.broadcast_block(block=block)
 
     def mint(self):
         v = Voter()
