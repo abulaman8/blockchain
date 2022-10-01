@@ -1,10 +1,14 @@
 from hashlib import sha256
 import socket
-from getmac import get_mac_address
-from voter import Voter
 from pymongo import MongoClient
-from vote import deserialize
 import sys
+import os
+
+
+from utils import make_merkle_root, deserialize, deserialize_block
+from voter import Voter
+from block import Block
+
 
 
 client = MongoClient('127.0.0.1:27017',
@@ -33,7 +37,6 @@ class Node():
         1. A node will hold a copy of the entire ledger (blockchain) as a list(linked list maybe...) 
         2. will have a MEMPOOL which is a set of all incoming votes
         3. will be listening on a fixed port for votes and blocks
-        4. will have a unique id which will be the MAC address of the device it runs on
     Functions:
         1. Verify a vote from the MEMPOOL and add it to a Block
         2. add the "mined" Block to it's copy of the ledger
@@ -42,16 +45,37 @@ class Node():
         5. Request blocks that it has missed from other "known" nodes (Realized when the "prev hash" of an incoming block doesnt match the latest block's hash in it's copy of the ledger)
 
     '''
-    def __init__(self, port=8888, known_nodes = []):
+    def __init__(
+        self,
+        prev_hash,
+        port=8888,
+        known_nodes = [],
+        target='00000000000015dbd20000000000000000000000000000000000000000000000',
+        blocks_path = os.path.join(os.path.join(os.getcwd(), 'blocks')),
+        block_height = 0
+    ):
         self.mempool = []
         self.utxo_pool = db.utxo_pool
-        # self.id = str(get_mac_address())
         self.ip = '127.0.0.1'
         self.port = port
         self.known_nodes = known_nodes
+        self.target = target
+        self.prev_hash = prev_hash
+        self.version_number = 0
+        self.blocks_path = blocks_path
+        self.block_height = block_height
         self.listen()
+        
 
 
+
+    def mine_block(self):
+        if len(self.mempool) > int('ffffffff', 16):
+            votes = self.mempool[:int('ffffffff', 16)]
+        else:
+            votes = self.mempool
+        new_block = Block(prev_hash=self.prev_hash, version_number=self.version_number, target=self.target, votes=votes)
+        new_block.mine()
 
     def mint(self):
         v = Voter()
@@ -61,7 +85,7 @@ class Node():
         print('started')
         vote_dict = deserialize(vote)
         valid_voter = self.utxo_pool.find_one({'pub_key': str(int.from_bytes(vote_dict['vpub'].to_string(), "big"))})
-        if valid_voter:
+        if valid_voter and vote_dict['vpub'].verify(vote_dict['signature'], vote_dict['data']):
             self.mempool.append(vote)
             for node in self.known_nodes:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -73,8 +97,6 @@ class Node():
             print('voter not in database')
     
 
-    def mine(self):
-        pass
 
 
     def listen(self):
@@ -91,16 +113,51 @@ class Node():
                 print('its a vote')
                 self.verify_vote_and_broadcast(msg)
                 print('sent for broadcast')
+            elif msg[:4].decode("utf-8") == 'blok':
+                print('it\'s a block')
+                self.verify_block_and_broadcast(msg)
+                print('sent block for verification and broadcast')
             else:
-                print('its not a vote')
+                print('its neither a vote nor a block')
             print(msg)
     
 
     def request_missed_blocks(self):
-        pass    
+        pass
+
+    def verify_block_and_broadcast(self, block):
+        block_data = deserialize_block(block=block)
+        if block_data['prev_hash'] == self.prev_hash:
+            vote_hashes = [vote['vote_hash'] for vote in block_data['votes']]
+            if block_data['merkle_root'] == make_merkle_root(vote_hashes=vote_hashes):
+                for vote in block_data['votes']:
+                    vpub = self.utxo_pool.find_one({'pub_key': str(int.from_bytes(vote['vpub'].to_string()))})
+                    if vpub:
+                        pass
+                    else:
+                        raise Exception('Voter not in database, or has already voted')
+            else:
+                raise Exception('Invalid Merkle root or the block has been altered')
+        else:
+            raise Exception('Invalid previous block hash')
+        self.prev_hash = block_data['prev_hash']
+        with open(f'vblk{self.block_height+1}.dat', 'wb') as bfile:
+            bfile.write(block)
+        
+        for node in self.known_nodes:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(node)
+            sock.send(block)
+            sock.close()
+            print(f'vote broadcasted to {node[0]}')
 
     def broadcast_block(self, block):
-        pass
+        for node in self.known_nodes:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(node)
+            sock.send(block)
+            sock.close()
+            print(f'vote broadcasted to {node[0]}')
 
 
 

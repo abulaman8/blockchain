@@ -1,3 +1,4 @@
+# import hashlib
 # from ecdsa import VerifyingKey, SigningKey, SECP256k1
 # from pymongo import MongoClient
 
@@ -47,3 +48,40 @@
 # })
 
 # v.vote(candidate_public_key=cpub)
+
+
+# prv = SigningKey.generate(curve = SECP256k1)
+# pub = prv.verifying_key
+# msg = b'abulaman'
+# sig = prv.sign(data=msg)
+# print(pub.verify(sig, msg))
+
+
+# a = '00000000000000000696f4000000000000000000000000000000000000000000'
+# # print(len(a))
+# # for i in range(0, len(a), 2):
+# #     if a[i] + a[i+1] == '00':
+# #         a = a[i+2:]
+# #         print(a)
+# #     else:
+# #         break
+# # print(a)
+# b = int(a, 16)
+# c=f'{b:x}'
+
+
+
+# a=b'abcdefghijklmnopqrstuvwxyz'
+# l = []
+# for i in range(0, len(a), 2):
+#     l.append(a[i:i+2])
+# print(l)
+
+
+
+# class Pair():
+#     def __init__(self, x, y):
+#         self.x = x
+#         self.y = y
+#     def add(self,):
+#         return self

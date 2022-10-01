@@ -24,10 +24,13 @@ class Voter():
 	2. will have a public key
 
 	'''
-	def __init__(self):
+	def __init__(self, private_key=None, public_key=None):
 
-		
-		self.private_key, self.public_key = self.generate_key_pair()
+		if private_key and public_key:
+			self.private_key = private_key
+			self.public_key = public_key
+		else:
+			self.private_key, self.public_key = self.generate_key_pair()
 	def generate_key_pair(self):
 		private_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
 		public_key = private_key.verifying_key
@@ -41,7 +44,7 @@ class Voter():
 		pbkqr.png('voter_public_key.png', scale=6)
 		return private_key.to_pem(), public_key.to_pem()
 
-	def vote(self, candidate_public_key):
+	def vote(self, candidate_public_key, hps=hps):
 		vote = Vote(
 			voter_public_key=self.public_key,
 			voter_private_key=self.private_key,
