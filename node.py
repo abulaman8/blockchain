@@ -1,4 +1,3 @@
-from hashlib import sha256
 import socket
 from pymongo import MongoClient
 import sys

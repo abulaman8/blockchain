@@ -20,6 +20,7 @@ class Vote():
 		
 	def serialize(self):
 		msg_type = b'vote'                                                                              #4 bytes
+		# print(f'')
 		vpub_bytes = self.vpub.to_string()                                                              #64 bytes
 		cpub_bytes = self.cpub.to_string()                                                              #64 bytes
 		time_bytes = self.timestamp.to_bytes(4, "big")                                                  #4 bytes
@@ -36,16 +37,3 @@ class Vote():
 
 
 
-def test():
-	vprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-	vpublic_key = vprivate_key.verifying_key.to_pem()
-	cprivate_key = ecdsa.SigningKey.generate(curve=ecdsa.SECP256k1)
-	cpublic_key = cprivate_key.verifying_key.to_pem()
-	vote = Vote(candidate_public_key=cpublic_key, voter_private_key=vprivate_key.to_pem(), voter_public_key=vpublic_key)
-	print(vote.serialize())
-
-if __name__ == '__main__':
-	test()
-
-
-# test()
